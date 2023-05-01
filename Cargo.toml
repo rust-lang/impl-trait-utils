@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "trait_transformer",
+    "trait_transformer_test",
+]
+
+[workspace.package]
+license = "MIT OR Apache 2.0"
+
+[workspace.dependencies]
+trait_transformer = { version = "0.1.0", path = "trait_transformer" }
