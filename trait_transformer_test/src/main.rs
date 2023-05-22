@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![feature(async_fn_in_trait, return_position_impl_trait_in_trait, return_type_notation)]
+
 use trait_transformer::trait_transformer;
 
 #[trait_transformer(SendIntFactory: Send)]

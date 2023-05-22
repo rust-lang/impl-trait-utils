@@ -68,24 +68,8 @@ fn transform_trait(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
         .traits
         .iter()
         .map(|attr| {
-            let mut new_trait = ItemTrait {
-                attrs: Vec::new(),
-                ident: attr.subtrait_name.clone(),
-                items: Vec::new(),
-                ..tr.clone()
-            };
-            new_trait
-                .supertraits
-                .push(syn::TypeParamBound::Trait(TraitBound {
-                    paren_token: None,
-                    modifier: TraitBoundModifier::None,
-                    lifetimes: None,
-                    path: attr.subtrait.clone(),
-                }));
-            let where_clause = new_trait.generics.make_where_clause();
-
             let subtrait = &attr.subtrait;
-            for item in tr.items.iter() {
+            let fn_bounds = tr.items.iter().filter_map(|item| {
                 match item {
                     TraitItem::Fn(item_fn) => {
                         let is_async = item_fn.sig.asyncness.is_some();
@@ -98,20 +82,34 @@ fn transform_trait(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
 
                         if is_async || returns_impl_trait {
                             let name = &item_fn.sig.ident;
-                            where_clause
-                                .predicates
-                                .push(WherePredicate::Type(PredicateType {
-                                    lifetimes: None,
-                                    bounded_ty: Type::Verbatim(quote!(Self::#name())),
-                                    colon_token: Token![:](Span::call_site()),
-                                    bounds: parse_quote!(#subtrait),
-                                }));
+                            return Some(quote! { #name(): #subtrait });
                         }
                     }
                     _ => (),
                 }
+                None
+            });
+
+            let tr_ident = &tr.ident;
+            let supertrait = syn::TypeParamBound::Verbatim(quote! {
+                #tr_ident<#(#fn_bounds),*>
+            });
+
+            ItemTrait {
+                attrs: Vec::new(),
+                ident: attr.subtrait_name.clone(),
+                items: Vec::new(),
+                supertraits: Punctuated::from_iter(vec![
+                    supertrait,
+                    syn::TypeParamBound::Trait(TraitBound {
+                        paren_token: None,
+                        modifier: TraitBoundModifier::None,
+                        lifetimes: None,
+                        path: attr.subtrait.clone(),
+                    }),
+                ].into_iter()),
+                ..tr.clone()
             }
-            new_trait
         })
         .collect::<Vec<_>>();
 
