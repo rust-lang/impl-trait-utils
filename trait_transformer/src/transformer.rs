@@ -6,15 +6,15 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
-    parse_macro_input, parse_quote,
+    parse_macro_input,
     punctuated::Punctuated,
     token::Comma,
-    Ident, ItemTrait, Path, PredicateType, Result, ReturnType, Token, TraitBound,
-    TraitBoundModifier, TraitItem, Type, WherePredicate,
+    Ident, ItemTrait, Path, Result, ReturnType, Token, TraitBound, TraitBoundModifier, TraitItem,
+    Type,
 };
 
 struct Attrs {
