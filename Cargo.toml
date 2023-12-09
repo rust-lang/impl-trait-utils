@@ -4,6 +4,8 @@ members = [
     "trait_transformer_test",
 ]
 
+resolver = "2"
+
 [workspace.package]
 license = "MIT OR Apache 2.0"
 
