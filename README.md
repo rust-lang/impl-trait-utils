@@ -22,5 +22,3 @@ Which creates a new `SendIntFactory: IntFactory + Send` trait and additionally b
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
 [MIT license](LICENSE-MIT) at your option.
-
-This is not an officially supported Google product.
