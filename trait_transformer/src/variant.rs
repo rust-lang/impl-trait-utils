@@ -126,10 +126,10 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
             ReturnType::Type(arrow, ty) => match &**ty {
                 Type::ImplTrait(it) => {
                     let ty = Type::ImplTrait(TypeImplTrait {
-                        impl_token: it.impl_token.clone(),
+                        impl_token: it.impl_token,
                         bounds: it.bounds.iter().chain(bounds).cloned().collect(),
                     });
-                    (arrow.clone(), ty)
+                    (*arrow, ty)
                 }
                 _ => return item.clone(),
             },
