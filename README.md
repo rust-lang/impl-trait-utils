@@ -1,13 +1,13 @@
-# `impl_trait_utils`
+# impl-trait-utils
 
 Utilities for working with impl traits in Rust.
 
-## `trait_transformer`
+## `make_variant`
 
-Trait transformer is an experimental crate that generates specialized versions of a base trait. For example, if you want a `Send`able version of your trait, you'd write:
+`make_variant` generates a specialized version of a base trait that uses `async fn` and/or `-> impl Trait`. For example, if you want a `Send`able version of your trait, you'd write:
 
 ```rust
-#[trait_transformer(SendIntFactory: Send)]
+#[trait_transformer::make_variant(SendIntFactory: Send)]
 trait IntFactory {
     async fn make(&self) -> i32;
     // ..or..
@@ -16,7 +16,13 @@ trait IntFactory {
 }
 ```
 
-Which creates a new `SendIntFactory: IntFactory + Send` trait and additionally bounds `SendIntFactory::make(): Send` and `SendIntFactory::stream(): Send`. The generated sytax is still experimental, as it relies on the nightly and unstable `async_fn_in_trait`, `return_position_impl_trait_in_trait`, and `return_type_notation` features.
+Which creates a new `SendIntFactory: IntFactory + Send` trait and additionally bounds `SendIntFactory::make(): Send` and `SendIntFactory::stream(): Send`. Ordinary methods are not affected.
+
+Implementers of the trait can choose to implement the variant instead of the original trait. The macro creates a blanket impl which ensures that any type which implements the variant also implements the original trait.
+
+## `trait_transformer`
+
+`trait_transformer` does the same thing as `make_variant`, but using experimental nightly-only syntax that depends on the `return_type_notation` feature. It may be used to experiment with new kinds of trait transformations in the future.
 
 #### License and usage notes
 
