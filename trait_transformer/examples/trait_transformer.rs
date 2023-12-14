@@ -6,7 +6,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(async_fn_in_trait, return_position_impl_trait_in_trait, return_type_notation)]
+#![allow(incomplete_features)]
+#![feature(return_type_notation)]
+
+use std::iter;
 
 use trait_transformer::trait_transformer;
 
@@ -18,27 +21,28 @@ trait IntFactory {
     fn call(&self) -> u32;
 }
 
-fn thing(factory: impl SendIntFactory) {
-    tokio::task::spawn(|| async {
+fn thing(factory: impl SendIntFactory + 'static) {
+    tokio::task::spawn(async move {
         factory.make().await;
-    })
+    });
 }
 
 struct MyFactory;
 
 impl IntFactory for MyFactory {
     async fn make(&self) -> i32 {
-        todo!();
+        todo!()
     }
 
     fn stream(&self) -> impl Iterator<Item = i32> {
-        todo!();
+        iter::empty()
     }
 
     fn call(&self) -> u32 {
         0
     }
 }
+impl SendIntFactory for MyFactory {}
 
 fn main() {
     let my_factory = MyFactory;
