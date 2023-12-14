@@ -141,14 +141,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "trait_transformer_test"
-version = "0.1.0"
-dependencies = [
  "tokio",
- "trait_transformer",
 ]
 
 [[package]]
