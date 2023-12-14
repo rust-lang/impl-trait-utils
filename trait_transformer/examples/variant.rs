@@ -8,9 +8,9 @@
 
 use std::future::Future;
 
-use trait_transformer::variant;
+use trait_transformer::make_variant;
 
-#[variant(SendIntFactory: Send)]
+#[make_variant(SendIntFactory: Send)]
 trait IntFactory {
     const NAME: &'static str;
 

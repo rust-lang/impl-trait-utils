@@ -21,25 +21,25 @@ use syn::{
 };
 
 struct Attrs {
-    variant: Variant,
+    variant: MakeVariant,
 }
 
 impl Parse for Attrs {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
-            variant: Variant::parse(input)?,
+            variant: MakeVariant::parse(input)?,
         })
     }
 }
 
-struct Variant {
+struct MakeVariant {
     name: Ident,
     #[allow(unused)]
     colon: Token![:],
     bounds: Punctuated<TraitBound, Plus>,
 }
 
-impl Parse for Variant {
+impl Parse for MakeVariant {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             name: input.parse()?,
@@ -49,15 +49,15 @@ impl Parse for Variant {
     }
 }
 
-pub fn variant(
+pub fn make_variant(
     attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let attrs = parse_macro_input!(attr as Attrs);
     let item = parse_macro_input!(item as ItemTrait);
 
-    let variant = make_variant(&attrs, &item);
-    let blanket_impl = make_blanket_impl(&attrs, &item);
+    let variant = mk_variant(&attrs, &item);
+    let blanket_impl = mk_blanket_impl(&attrs, &item);
     let output = quote! {
         #item
         #variant
@@ -67,8 +67,8 @@ pub fn variant(
     output.into()
 }
 
-fn make_variant(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
-    let Variant {
+fn mk_variant(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
+    let MakeVariant {
         ref name,
         colon: _,
         ref bounds,
@@ -91,7 +91,7 @@ fn make_variant(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
 }
 
 fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
-    // #[variant(SendIntFactory: Send)]
+    // #[make_variant(SendIntFactory: Send)]
     // trait IntFactory {
     //     async fn make(&self, x: u32, y: &str) -> i32;
     //     fn stream(&self) -> impl Iterator<Item = i32>;
@@ -146,7 +146,7 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
     })
 }
 
-fn make_blanket_impl(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
+fn mk_blanket_impl(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
     let orig = &tr.ident;
     let variant = &attrs.variant.name;
     let items = tr.items.iter().map(|item| blanket_impl_item(item, variant));
