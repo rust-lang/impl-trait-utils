@@ -6,7 +6,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![doc = include_str!("../../README.md")]
+
 mod transformer;
+mod variant;
 
 #[proc_macro_attribute]
 pub fn trait_transformer(
@@ -14,4 +17,12 @@ pub fn trait_transformer(
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     transformer::trait_transformer(attr, item)
+}
+
+#[proc_macro_attribute]
+pub fn make_variant(
+    attr: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    variant::make_variant(attr, item)
 }
