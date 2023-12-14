@@ -91,6 +91,20 @@ fn make_variant(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
 }
 
 fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
+    // #[variant(SendIntFactory: Send)]
+    // trait IntFactory {
+    //     async fn make(&self, x: u32, y: &str) -> i32;
+    //     fn stream(&self) -> impl Iterator<Item = i32>;
+    //     fn call(&self) -> u32;
+    // }
+    //
+    // becomes:
+    //
+    // trait SendIntFactory: Send {
+    //     fn make(&self, x: u32, y: &str) -> impl ::core::future::Future<Output = i32> + Send;
+    //     fn stream(&self) -> impl Iterator<Item = i32> + Send;
+    //     fn call(&self) -> u32;
+    // }
     let TraitItem::Fn(fn_item @ TraitItemFn { sig, .. }) = item else {
         return item.clone();
     };
@@ -144,6 +158,13 @@ fn make_blanket_impl(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
 }
 
 fn blanket_impl_item(item: &TraitItem, variant: &Ident) -> TokenStream {
+    // impl<T> IntFactory for T where T: SendIntFactory {
+    //     const NAME: &'static str = <Self as SendIntFactory>::NAME;
+    //     type MyFut<'a> = <Self as SendIntFactory>::MyFut<'a> where Self: 'a;
+    //     async fn make(&self, x: u32, y: &str) -> i32 {
+    //         <Self as SendIntFactory>::make(self, x, y).await
+    //     }
+    // }
     match item {
         TraitItem::Const(TraitItemConst {
             ident,
