@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "trait_transformer",
-    "trait_transformer_test",
 ]
 
 resolver = "2"

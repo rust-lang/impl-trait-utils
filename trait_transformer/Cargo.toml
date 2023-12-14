@@ -1,5 +1,5 @@
 # Copyright (c) 2023 Google LLC
-# 
+#
 # Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 # https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
 # <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
@@ -21,3 +21,6 @@ proc-macro = true
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "2.0", features = ["full"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt"] }
