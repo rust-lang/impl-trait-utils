@@ -15,8 +15,9 @@ use syn::{
     parse_macro_input,
     punctuated::Punctuated,
     token::Plus,
-    Ident, ItemTrait, Result, ReturnType, Signature, Token, TraitBound, TraitItem, TraitItemFn,
-    Type, TypeImplTrait, TypeParamBound,
+    Error, FnArg, Generics, Ident, ItemTrait, Pat, PatType, Result, ReturnType, Signature, Token,
+    TraitBound, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, TypeImplTrait,
+    TypeParamBound,
 };
 
 struct Attrs {
@@ -56,9 +57,11 @@ pub fn variant(
     let item = parse_macro_input!(item as ItemTrait);
 
     let variant = make_variant(&attrs, &item);
+    let blanket_impl = make_blanket_impl(&attrs, &item);
     let output = quote! {
         #item
         #variant
+        #blanket_impl
     };
 
     output.into()
@@ -127,4 +130,66 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
         },
         ..fn_item.clone()
     })
+}
+
+fn make_blanket_impl(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
+    let orig = &tr.ident;
+    let variant = &attrs.variant.name;
+    let items = tr.items.iter().map(|item| blanket_impl_item(item, variant));
+    quote! {
+        impl<T> #orig for T where T: #variant {
+            #(#items)*
+        }
+    }
+}
+
+fn blanket_impl_item(item: &TraitItem, variant: &Ident) -> TokenStream {
+    match item {
+        TraitItem::Const(TraitItemConst {
+            ident,
+            generics,
+            ty,
+            ..
+        }) => {
+            quote! {
+                const #ident #generics: #ty = <Self as #variant>::#ident;
+            }
+        }
+        TraitItem::Fn(TraitItemFn { sig, .. }) => {
+            let ident = &sig.ident;
+            let args = sig.inputs.iter().map(|arg| match arg {
+                FnArg::Receiver(_) => quote! { self },
+                FnArg::Typed(PatType { pat, .. }) => match &**pat {
+                    Pat::Ident(arg) => quote! { #arg },
+                    _ => Error::new_spanned(pat, "patterns are not supported in arguments")
+                        .to_compile_error(),
+                },
+            });
+            let maybe_await = if sig.asyncness.is_some() {
+                quote! { .await }
+            } else {
+                quote! {}
+            };
+            quote! {
+                #sig {
+                    <Self as #variant>::#ident(#(#args),*)#maybe_await
+                }
+            }
+        }
+        TraitItem::Type(TraitItemType {
+            ident,
+            generics:
+                Generics {
+                    params,
+                    where_clause,
+                    ..
+                },
+            ..
+        }) => {
+            quote! {
+                type #ident<#params> = <Self as #variant>::#ident<#params> #where_clause;
+            }
+        }
+        _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
+    }
 }

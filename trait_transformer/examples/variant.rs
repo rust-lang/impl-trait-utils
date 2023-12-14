@@ -6,14 +6,22 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use std::future::Future;
+
 use trait_transformer::variant;
 
 #[variant(SendIntFactory: Send)]
 trait IntFactory {
-    async fn make(&self) -> i32;
-    // ..or..
+    const NAME: &'static str;
+
+    type MyFut<'a>: Future
+    where
+        Self: 'a;
+
+    async fn make(&self, x: u32, y: &str) -> i32;
     fn stream(&self) -> impl Iterator<Item = i32>;
     fn call(&self) -> u32;
+    fn another_async(&self, input: Result<(), &str>) -> Self::MyFut<'_>;
 }
 
 fn main() {}
