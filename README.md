@@ -7,7 +7,7 @@ Utilities for working with impl traits in Rust.
 `make_variant` generates a specialized version of a base trait that uses `async fn` and/or `-> impl Trait`. For example, if you want a `Send`able version of your trait, you'd write:
 
 ```rust
-#[trait_transformer::make_variant(SendIntFactory: Send)]
+#[trait_variant::make_variant(SendIntFactory: Send)]
 trait IntFactory {
     async fn make(&self) -> i32;
     // ..or..

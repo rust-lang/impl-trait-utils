@@ -8,7 +8,7 @@
 
 use std::future::Future;
 
-use trait_transformer::make_variant;
+use trait_variant::make_variant;
 
 #[make_variant(SendIntFactory: Send)]
 trait IntFactory {

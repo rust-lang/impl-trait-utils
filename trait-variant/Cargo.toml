@@ -7,8 +7,8 @@
 # except according to those terms.
 
 [package]
-name = "trait_transformer"
-version = "0.1.0"
+name = "trait-variant"
+version = "0.0.0"
 edition = "2021"
 license.workspace = true
 
