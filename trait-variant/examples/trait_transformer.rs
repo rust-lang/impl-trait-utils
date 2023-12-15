@@ -11,7 +11,7 @@
 
 use std::iter;
 
-use trait_transformer::trait_transformer;
+use trait_variant::trait_transformer;
 
 #[trait_transformer(SendIntFactory: Send)]
 trait IntFactory {

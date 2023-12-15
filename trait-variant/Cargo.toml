@@ -7,10 +7,14 @@
 # except according to those terms.
 
 [package]
-name = "trait_transformer"
-version = "0.1.0"
-edition = "2021"
+name = "trait-variant"
+version = "0.0.0"
+description = "Utilities for working with impl traits in Rust"
+categories = ["asynchronous", "no-std", "rust-patterns"]
+keywords = ["async", "trait", "impl"]
 license.workspace = true
+repository.workspace = true
+edition = "2021"
 
 [lib]
 proc-macro = true
