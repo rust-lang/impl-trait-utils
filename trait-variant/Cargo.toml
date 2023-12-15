@@ -9,8 +9,11 @@
 [package]
 name = "trait-variant"
 version = "0.0.0"
-edition = "2021"
+description = "Utilities for working with impl traits in Rust"
+categories = ["asynchronous", "no-std", "rust-patterns"]
+keywords = ["async", "trait", "impl"]
 license.workspace = true
+edition = "2021"
 
 [lib]
 proc-macro = true
