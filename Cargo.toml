@@ -6,4 +6,5 @@ members = [
 resolver = "2"
 
 [workspace.package]
+repository = "https://github.com/rust-lang/impl-trait-utils"
 license = "MIT OR Apache-2.0"
