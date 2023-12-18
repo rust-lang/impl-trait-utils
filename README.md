@@ -1,5 +1,7 @@
 # impl-trait-utils
 
+[![Latest Version]][crates.io] [![Documentation]][docs.rs] [![GHA Status]][GitHub Actions] ![License]
+
 Utilities for working with impl traits in Rust.
 
 ## `make_variant`
@@ -28,3 +30,11 @@ Implementers of the trait can choose to implement the variant instead of the ori
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
 [MIT license](LICENSE-MIT) at your option.
+
+[GitHub Actions]: https://github.com/rust-lang/impl-trait-utils/actions
+[GHA Status]: https://github.com/rust-lang/impl-trait-utils/actions/workflows/rust.yml/badge.svg
+[crates.io]: https://crates.io/crates/trait-variant
+[Latest Version]: https://img.shields.io/crates/v/trait-variant.svg
+[Documentation]: https://img.shields.io/docsrs/trait-variant
+[docs.rs]: https://docs.rs/trait-variant
+[License]: https://img.shields.io/crates/l/trait-variant.svg
