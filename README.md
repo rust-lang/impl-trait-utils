@@ -1,5 +1,3 @@
-# impl-trait-utils
-
 [![Latest Version]][crates.io] [![Documentation]][docs.rs] [![GHA Status]][GitHub Actions] ![License]
 
 Utilities for working with impl traits in Rust.
