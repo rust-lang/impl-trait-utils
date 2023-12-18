@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "trait-variant",
+    "trait-transformer",
 ]
 
 resolver = "2"
