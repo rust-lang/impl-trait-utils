@@ -10,8 +10,8 @@ use std::future::Future;
 
 use trait_variant::make_variant;
 
-#[make_variant(SendIntFactory: Send)]
-trait IntFactory {
+#[make_variant(IntFactory: Send)]
+pub trait LocalIntFactory {
     const NAME: &'static str;
 
     type MyFut<'a>: Future
@@ -22,6 +22,13 @@ trait IntFactory {
     fn stream(&self) -> impl Iterator<Item = i32>;
     fn call(&self) -> u32;
     fn another_async(&self, input: Result<(), &str>) -> Self::MyFut<'_>;
+}
+
+#[allow(dead_code)]
+fn spawn_task(factory: impl IntFactory + 'static) {
+    tokio::spawn(async move {
+        let _int = factory.make(1, "foo").await;
+    });
 }
 
 fn main() {}
