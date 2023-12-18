@@ -2,12 +2,12 @@
 
 Utilities for working with impl traits in Rust.
 
-## `make_variant`
+## `trait_variant`
 
-`make_variant` generates a specialized version of a base trait that uses `async fn` and/or `-> impl Trait`. For example, if you want a `Send`able version of your trait, you'd write:
+`trait_variant` generates a specialized version of a base trait that uses `async fn` and/or `-> impl Trait`. For example, if you want a `Send`able version of your trait, you'd write:
 
 ```rust
-#[trait_variant::make_variant(SendIntFactory: Send)]
+#[trait_variant::make(SendIntFactory: Send)]
 trait IntFactory {
     async fn make(&self) -> i32;
     // ..or..
@@ -22,7 +22,7 @@ Implementers of the trait can choose to implement the variant instead of the ori
 
 ## `trait_transformer`
 
-`trait_transformer` does the same thing as `make_variant`, but using experimental nightly-only syntax that depends on the `return_type_notation` feature. It may be used to experiment with new kinds of trait transformations in the future.
+`trait_transformer` does the same thing as `make`, but using experimental nightly-only syntax that depends on the `return_type_notation` feature. It may be used to experiment with new kinds of trait transformations in the future.
 
 #### License and usage notes
 
