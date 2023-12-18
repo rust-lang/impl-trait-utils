@@ -56,15 +56,29 @@ pub fn make_variant(
     let attrs = parse_macro_input!(attr as Attrs);
     let item = parse_macro_input!(item as ItemTrait);
 
-    let variant = mk_variant(&attrs, &item);
-    let blanket_impl = mk_blanket_impl(&attrs, &item);
-    let output = quote! {
-        #item
-        #variant
-        #blanket_impl
+    let maybe_allow_async_lint = if attrs
+        .variant
+        .bounds
+        .iter()
+        .any(|b| b.path.segments.last().unwrap().ident.to_string() == "Send")
+    {
+        quote! { #[allow(async_fn_in_trait)] }
+    } else {
+        quote! {}
     };
 
-    output.into()
+    let variant = mk_variant(&attrs, &item);
+    let blanket_impl = mk_blanket_impl(&attrs, &item);
+
+    quote! {
+        #maybe_allow_async_lint
+        #item
+
+        #variant
+
+        #blanket_impl
+    }
+    .into()
 }
 
 fn mk_variant(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
