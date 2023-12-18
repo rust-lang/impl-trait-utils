@@ -8,9 +8,7 @@
 
 use std::future::Future;
 
-use trait_variant::make_variant;
-
-#[make_variant(IntFactory: Send)]
+#[trait_variant::make(IntFactory: Send)]
 pub trait LocalIntFactory {
     const NAME: &'static str;
 
