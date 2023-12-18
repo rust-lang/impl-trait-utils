@@ -60,7 +60,7 @@ pub fn make_variant(
         .variant
         .bounds
         .iter()
-        .any(|b| b.path.segments.last().unwrap().ident.to_string() == "Send")
+        .any(|b| b.path.segments.last().unwrap().ident == "Send")
     {
         quote! { #[allow(async_fn_in_trait)] }
     } else {
