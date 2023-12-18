@@ -7,8 +7,8 @@ Utilities for working with impl traits in Rust.
 `trait_variant` generates a specialized version of a base trait that uses `async fn` and/or `-> impl Trait`. For example, if you want a `Send`able version of your trait, you'd write:
 
 ```rust
-#[trait_variant::make(SendIntFactory: Send)]
-trait IntFactory {
+#[trait_variant::make(IntFactory: Send)]
+trait LocalIntFactory {
     async fn make(&self) -> i32;
     // ..or..
     fn stream(&self) -> impl Iterator<Item = i32>;
@@ -16,7 +16,7 @@ trait IntFactory {
 }
 ```
 
-Which creates a new `SendIntFactory: IntFactory + Send` trait and additionally bounds `SendIntFactory::make(): Send` and `SendIntFactory::stream(): Send`. Ordinary methods are not affected.
+Which creates a new `IntFactory: Send` trait and additionally bounds `IntFactory::make(): Send` and `IntFactory::stream(): Send`. Ordinary methods are not affected.
 
 Implementers of the trait can choose to implement the variant instead of the original trait. The macro creates a blanket impl which ensures that any type which implements the variant also implements the original trait.
 
