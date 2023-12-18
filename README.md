@@ -20,10 +20,6 @@ Which creates a new `SendIntFactory: IntFactory + Send` trait and additionally b
 
 Implementers of the trait can choose to implement the variant instead of the original trait. The macro creates a blanket impl which ensures that any type which implements the variant also implements the original trait.
 
-## `trait_transformer`
-
-`trait_transformer` does the same thing as `trait_variant`, but using experimental nightly-only syntax that depends on the `return_type_notation` feature. It may be used to experiment with new kinds of trait transformations in the future.
-
 #### License and usage notes
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
