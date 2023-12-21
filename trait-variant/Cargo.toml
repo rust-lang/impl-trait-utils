@@ -15,6 +15,7 @@ keywords = ["async", "trait", "impl"]
 license.workspace = true
 repository.workspace = true
 edition = "2021"
+rust-version = "1.75"
 
 [lib]
 proc-macro = true
