@@ -8,7 +8,7 @@
 
 [package]
 name = "trait-variant"
-version = "0.0.1"
+version = "0.1.0"
 description = "Utilities for working with impl traits in Rust"
 categories = ["asynchronous", "no-std", "rust-patterns"]
 keywords = ["async", "trait", "impl"]
