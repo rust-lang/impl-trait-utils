@@ -10,6 +10,34 @@
 
 mod variant;
 
+/// Creates a specialized version of a base trait that adds bounds to `async
+/// fn` and/or `-> impl Trait` return types.
+///
+/// ```
+/// #[trait_variant::make(IntFactory: Send)]
+/// trait LocalIntFactory {
+///     async fn make(&self) -> i32;
+///     fn stream(&self) -> impl Iterator<Item = i32>;
+///     fn call(&self) -> u32;
+/// }
+/// ```
+///
+/// The above example causes a second trait called `IntFactory` to be created:
+///
+/// ```
+/// # use core::future::Future;
+/// trait IntFactory: Send {
+///     fn make(&self) -> impl Future<Output = i32> + Send;
+///     fn stream(&self) -> impl Iterator<Item = i32> + Send;
+///     fn call(&self) -> u32;
+/// }
+/// ```
+///
+/// Note that ordinary methods such as `call` are not affected.
+///
+/// Implementers of the trait can choose to implement the variant instead of the
+/// original trait. The macro creates a blanket impl which ensures that any type
+/// which implements the variant also implements the original trait.
 #[proc_macro_attribute]
 pub fn make(
     attr: proc_macro::TokenStream,

@@ -12,13 +12,14 @@ trait LocalIntFactory {
     async fn make(&self) -> i32;
     // ..or..
     fn stream(&self) -> impl Iterator<Item = i32>;
-    fn call(&self) -> u32;
 }
 ```
 
-Which creates a new `IntFactory: Send` trait and additionally bounds `IntFactory::make(): Send` and `IntFactory::stream(): Send`. Ordinary methods are not affected.
+Which creates a new `IntFactory: Send` trait and additionally bounds `IntFactory::make(): Send` and `IntFactory::stream(): Send`. Implementers of the trait can choose to implement the variant instead of the original trait.
 
-Implementers of the trait can choose to implement the variant instead of the original trait. The macro creates a blanket impl which ensures that any type which implements the variant also implements the original trait.
+For more details, see the docs for [`trait_variant::make`].
+
+[`trait_variant::make`]: https://docs.rs/trait-variant/latest/trait_variant/attr.make.html
 
 #### License and usage notes
 
