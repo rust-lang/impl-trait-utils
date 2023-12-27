@@ -8,16 +8,16 @@
 
 use std::iter;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
     token::Plus,
-    Error, FnArg, Generics, Ident, ItemTrait, Pat, PatType, Result, ReturnType, Signature, Token,
-    TraitBound, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, TypeImplTrait,
-    TypeParamBound,
+    Error, FnArg, Generics, Ident, ItemTrait, Pat, PatType, Receiver, Result, ReturnType,
+    Signature, Token, TraitBound, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type,
+    TypeImplTrait, TypeParamBound, WhereClause,
 };
 
 struct Attrs {
@@ -119,10 +119,10 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
     //     fn stream(&self) -> impl Iterator<Item = i32> + Send;
     //     fn call(&self) -> u32;
     // }
-    let TraitItem::Fn(fn_item @ TraitItemFn { sig, .. }) = item else {
+    let TraitItem::Fn(fn_item @ TraitItemFn { sig, default, .. }) = item else {
         return item.clone();
     };
-    let (arrow, output) = if sig.asyncness.is_some() {
+    let (sig, default) = if sig.asyncness.is_some() {
         let orig = match &sig.output {
             ReturnType::Default => quote! { () },
             ReturnType::Type(_, ty) => quote! { #ty },
@@ -134,7 +134,22 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
                 .chain(bounds.iter().cloned())
                 .collect(),
         });
-        (syn::parse2(quote! { -> }).unwrap(), ty)
+        let mut sig = sig.clone();
+        if default.is_some() {
+            add_receiver_bounds(&mut sig);
+        }
+
+        (
+            Signature {
+                asyncness: None,
+                output: ReturnType::Type(syn::parse2(quote! { -> }).unwrap(), Box::new(ty)),
+                ..sig.clone()
+            },
+            fn_item
+                .default
+                .as_ref()
+                .map(|b| syn::parse2(quote! { { async move #b } }).unwrap()),
+        )
     } else {
         match &sig.output {
             ReturnType::Type(arrow, ty) => match &**ty {
@@ -143,7 +158,13 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
                         impl_token: it.impl_token,
                         bounds: it.bounds.iter().chain(bounds).cloned().collect(),
                     });
-                    (*arrow, ty)
+                    (
+                        Signature {
+                            output: ReturnType::Type(*arrow, Box::new(ty)),
+                            ..sig.clone()
+                        },
+                        fn_item.default.clone(),
+                    )
                 }
                 _ => return item.clone(),
             },
@@ -151,11 +172,8 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
         }
     };
     TraitItem::Fn(TraitItemFn {
-        sig: Signature {
-            asyncness: None,
-            output: ReturnType::Type(arrow, Box::new(output)),
-            ..sig.clone()
-        },
+        sig,
+        default,
         ..fn_item.clone()
     })
 }
@@ -164,8 +182,26 @@ fn mk_blanket_impl(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
     let orig = &tr.ident;
     let variant = &attrs.variant.name;
     let items = tr.items.iter().map(|item| blanket_impl_item(item, variant));
+    let self_is_sync = tr
+        .items
+        .iter()
+        .any(|item| {
+            matches!(
+                item,
+                TraitItem::Fn(TraitItemFn {
+                    default: Some(_),
+                    ..
+                })
+            )
+        })
+        .then(|| quote! { Self: Sync })
+        .unwrap_or_default();
     quote! {
-        impl<T> #orig for T where T: #variant {
+        impl<T> #orig for T
+        where
+            T: #variant,
+            #self_is_sync
+        {
             #(#items)*
         }
     }
@@ -205,6 +241,7 @@ fn blanket_impl_item(item: &TraitItem, variant: &Ident) -> TokenStream {
             } else {
                 quote! {}
             };
+
             quote! {
                 #sig {
                     <Self as #variant>::#ident(#(#args),*)#maybe_await
@@ -226,5 +263,42 @@ fn blanket_impl_item(item: &TraitItem, variant: &Ident) -> TokenStream {
             }
         }
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
+    }
+}
+
+fn add_receiver_bounds(sig: &mut Signature) {
+    if let Some(FnArg::Receiver(Receiver { ty, reference, .. })) = sig.inputs.first_mut() {
+        let predicate =
+            if let (Type::Reference(reference), Some((_and, lt))) = (&mut **ty, reference) {
+                let lifetime = syn::Lifetime {
+                    apostrophe: Span::mixed_site(),
+                    ident: Ident::new("the_self_lt", Span::mixed_site()),
+                };
+                sig.generics.params.insert(
+                    0,
+                    syn::GenericParam::Lifetime(syn::LifetimeParam {
+                        lifetime: lifetime.clone(),
+                        colon_token: None,
+                        bounds: Default::default(),
+                        attrs: Default::default(),
+                    }),
+                );
+                reference.lifetime = Some(lifetime.clone());
+                let predicate = syn::parse2(quote! { #reference: Send }).unwrap();
+                *lt = Some(lifetime);
+                predicate
+            } else {
+                syn::parse2(quote! { #ty: Send }).unwrap()
+            };
+
+        if let Some(wh) = &mut sig.generics.where_clause {
+            wh.predicates.push(predicate);
+        } else {
+            let where_clause = WhereClause {
+                where_token: Token![where](Span::mixed_site()),
+                predicates: Punctuated::from_iter([predicate]),
+            };
+            sig.generics.where_clause = Some(where_clause);
+        }
     }
 }
