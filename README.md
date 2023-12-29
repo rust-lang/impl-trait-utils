@@ -1,21 +1,35 @@
 [![Latest Version]][crates.io] [![Documentation]][docs.rs] [![GHA Status]][GitHub Actions] ![License]
 
-Utilities for working with impl traits in Rust.
+Utilities for working with `impl Trait`s in Rust.
 
 ## `trait_variant`
 
-`trait_variant` generates a specialized version of a base trait that uses `async fn` and/or `-> impl Trait`. For example, if you want a `Send`able version of your trait, you'd write:
+`trait_variant` generates a specialized version of a base trait that uses `async fn` and/or `-> impl Trait`.
+
+For example, if you want a [`Send`][rust-std-send]able version of your trait, you'd write:
 
 ```rust
 #[trait_variant::make(IntFactory: Send)]
 trait LocalIntFactory {
     async fn make(&self) -> i32;
-    // ..or..
     fn stream(&self) -> impl Iterator<Item = i32>;
+    fn call(&self) -> u32;
 }
 ```
 
-Which creates a new `IntFactory: Send` trait and additionally bounds `IntFactory::make(): Send` and `IntFactory::stream(): Send`. Implementers of the trait can choose to implement the variant instead of the original trait.
+The `trait_variant::make` would generate an additional trait called `IntFactory`:
+
+```rust
+use core::future::Future;
+
+trait IntFactory: Send {
+   fn make(&self) -> impl Future<Output = i32> + Send;
+   fn stream(&self) -> impl Iterator<Item = i32> + Send;
+   fn call(&self) -> u32;
+}
+```
+
+Implementers can choose to implement either `LocalIntFactory` or `IntFactory` as appropriate.
 
 For more details, see the docs for [`trait_variant::make`].
 
@@ -33,3 +47,4 @@ Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
 [Documentation]: https://img.shields.io/docsrs/trait-variant
 [docs.rs]: https://docs.rs/trait-variant
 [License]: https://img.shields.io/crates/l/trait-variant.svg
+[rust-std-send]: https://doc.rust-lang.org/std/marker/trait.Send.html
