@@ -11,15 +11,8 @@ use std::iter;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    parse::{Parse, ParseStream},
-    parse_macro_input,
-    punctuated::Punctuated,
-    token::Plus,
-    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Receiver, Result, ReturnType,
-    Signature, Token, TraitBound, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type,
-    TypeGenerics, TypeImplTrait, TypeParam, TypeParamBound, WhereClause,
+    parse::{Parse, ParseStream}, parse_macro_input, parse_quote, punctuated::Punctuated, token::Plus, Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatIdent, PatType, Receiver, Result, ReturnType, Signature, Token, TraitBound, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, TypeGenerics, TypeImplTrait, TypeParam, TypeParamBound, TypeReference, WhereClause
 };
-use syn::{parse_quote, TypeReference};
 
 struct Attrs {
     variant: MakeVariant,
@@ -154,10 +147,32 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
                 output: ReturnType::Type(syn::parse2(quote! { -> }).unwrap(), Box::new(ty)),
                 ..sig.clone()
             },
-            fn_item
-                .default
-                .as_ref()
-                .map(|b| syn::parse2(quote! { { async move #b } }).unwrap()),
+            fn_item.default.as_ref().map(|b| {
+                let items = sig.inputs.iter().map(|i| match i {
+                    FnArg::Receiver(Receiver { self_token, .. }) => {
+                        quote! { let __self = #self_token; }
+                    }
+                    FnArg::Typed(PatType { pat, .. }) => match pat.as_ref() {
+                        Pat::Ident(PatIdent { ident, .. }) => quote! { let #ident = #ident; },
+                        _ => todo!(),
+                    },
+                });
+
+                struct ReplaceSelfVisitor;
+                impl syn::visit_mut::VisitMut for ReplaceSelfVisitor {
+                    fn visit_ident_mut(&mut self, ident: &mut syn::Ident) {
+                        if ident == "self" {
+                            *ident = syn::Ident::new("__self", ident.span());
+                        }
+                        syn::visit_mut::visit_ident_mut(self, ident);
+                    }
+                }
+
+                let mut block = b.clone();
+                syn::visit_mut::visit_block_mut(&mut ReplaceSelfVisitor, &mut block);
+
+                parse_quote! { { async move { #(#items)* #block} } }
+            }),
         )
     } else {
         match &sig.output {
