@@ -21,8 +21,8 @@ pub trait LocalIntFactory {
     fn stream(&self) -> impl Iterator<Item = i32>;
     fn call(&self) -> u32;
     fn another_async(&self, input: Result<(), &str>) -> Self::MyFut<'_>;
-    async fn defaulted(&self) -> i32 {
-        self.make(10, "10").await
+    async fn defaulted(&self, x: u32) -> i32 {
+        self.make(x, "10").await
     }
     async fn defaulted_mut(&mut self) -> i32 {
         self.make(10, "10").await
