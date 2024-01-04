@@ -29,4 +29,15 @@ fn spawn_task(factory: impl IntFactory + 'static) {
     });
 }
 
+#[trait_variant::make(GenericTrait: Send)]
+pub trait LocalGenericTrait<'x, S: Sync, Y, const X: usize>
+where
+    Y: Sync,
+{
+    const CONST: usize = 3;
+    type F;
+
+    async fn take(&self, s: S);
+}
+
 fn main() {}

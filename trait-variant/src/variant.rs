@@ -9,15 +9,15 @@
 use std::iter;
 
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
-    token::Plus,
-    Error, FnArg, Generics, Ident, ItemTrait, Pat, PatType, Result, ReturnType, Signature, Token,
-    TraitBound, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, TypeImplTrait,
-    TypeParamBound,
+    token::{Comma, Plus},
+    Error, FnArg, GenericParam, Generics, Ident, ItemTrait, Lifetime, Pat, PatType, Result,
+    ReturnType, Signature, Token, TraitBound, TraitItem, TraitItemConst, TraitItemFn,
+    TraitItemType, Type, TypeImplTrait, TypeParamBound,
 };
 
 struct Attrs {
@@ -162,16 +162,60 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
 
 fn mk_blanket_impl(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
     let orig = &tr.ident;
+    let generics = &tr.generics.params;
+    let mut generic_names = tr
+        .generics
+        .params
+        .iter()
+        .map(|generic| match generic {
+            GenericParam::Lifetime(lt) => GenericParamName::Lifetime(&lt.lifetime),
+            GenericParam::Type(ty) => GenericParamName::Type(&ty.ident),
+            GenericParam::Const(co) => GenericParamName::Const(&co.ident),
+        })
+        .collect::<Punctuated<_, Comma>>();
+    let trailing_comma = if !generic_names.is_empty() {
+        generic_names.push_punct(Comma::default());
+        quote! { , }
+    } else {
+        quote! {}
+    };
     let variant = &attrs.variant.name;
-    let items = tr.items.iter().map(|item| blanket_impl_item(item, variant));
+    let items = tr
+        .items
+        .iter()
+        .map(|item| blanket_impl_item(item, variant, &generic_names));
+    let where_clauses = tr.generics.where_clause.as_ref().map(|wh| &wh.predicates);
     quote! {
-        impl<T> #orig for T where T: #variant {
+        impl<#generics #trailing_comma TraitVariantBlanketType> #orig<#generic_names>
+        for TraitVariantBlanketType
+        where TraitVariantBlanketType: #variant<#generic_names>, #where_clauses
+        {
             #(#items)*
         }
     }
 }
 
-fn blanket_impl_item(item: &TraitItem, variant: &Ident) -> TokenStream {
+enum GenericParamName<'s> {
+    Lifetime(&'s Lifetime),
+    Type(&'s Ident),
+    Const(&'s Ident),
+}
+
+impl ToTokens for GenericParamName<'_> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            GenericParamName::Lifetime(lt) => lt.to_tokens(tokens),
+            GenericParamName::Type(ty) => ty.to_tokens(tokens),
+            GenericParamName::Const(co) => co.to_tokens(tokens),
+        }
+    }
+}
+
+fn blanket_impl_item(
+    item: &TraitItem,
+    variant: &Ident,
+    generic_names: &Punctuated<GenericParamName<'_>, Comma>,
+) -> TokenStream {
     // impl<T> IntFactory for T where T: SendIntFactory {
     //     const NAME: &'static str = <Self as SendIntFactory>::NAME;
     //     type MyFut<'a> = <Self as SendIntFactory>::MyFut<'a> where Self: 'a;
@@ -187,7 +231,7 @@ fn blanket_impl_item(item: &TraitItem, variant: &Ident) -> TokenStream {
             ..
         }) => {
             quote! {
-                const #ident #generics: #ty = <Self as #variant>::#ident;
+                const #ident #generics: #ty = <Self as #variant<#generic_names>>::#ident;
             }
         }
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
@@ -207,7 +251,7 @@ fn blanket_impl_item(item: &TraitItem, variant: &Ident) -> TokenStream {
             };
             quote! {
                 #sig {
-                    <Self as #variant>::#ident(#(#args),*)#maybe_await
+                    <Self as #variant<#generic_names>>::#ident(#(#args),*)#maybe_await
                 }
             }
         }
@@ -222,7 +266,7 @@ fn blanket_impl_item(item: &TraitItem, variant: &Ident) -> TokenStream {
             ..
         }) => {
             quote! {
-                type #ident<#params> = <Self as #variant>::#ident<#params> #where_clause;
+                type #ident<#params> = <Self as #variant<#generic_names>>::#ident<#params> #where_clause;
             }
         }
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
