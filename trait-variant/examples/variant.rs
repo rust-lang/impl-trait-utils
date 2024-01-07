@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::future::Future;
+use std::{future::Future, ops::Add};
 
 #[trait_variant::make(IntFactory: Send)]
 pub trait LocalIntFactory {
@@ -36,6 +36,8 @@ where
 {
     const CONST: usize = 3;
     type F;
+    type A<const ANOTHER_CONST: u8>;
+    type B<T>: Add<T>;
 
     async fn take(&self, s: S);
 }

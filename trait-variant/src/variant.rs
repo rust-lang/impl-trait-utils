@@ -15,9 +15,9 @@ use syn::{
     parse_macro_input,
     punctuated::Punctuated,
     token::{Comma, Plus},
-    Error, FnArg, GenericParam, Generics, Ident, ItemTrait, Lifetime, Pat, PatType, Result,
-    ReturnType, Signature, Token, TraitBound, TraitItem, TraitItemConst, TraitItemFn,
-    TraitItemType, Type, TypeImplTrait, TypeParamBound,
+    Error, FnArg, GenericParam, Ident, ItemTrait, Lifetime, Pat, PatType, Result, ReturnType,
+    Signature, Token, TraitBound, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type,
+    TypeImplTrait, TypeParamBound,
 };
 
 struct Attrs {
@@ -256,17 +256,11 @@ fn blanket_impl_item(
             }
         }
         TraitItem::Type(TraitItemType {
-            ident,
-            generics:
-                Generics {
-                    params,
-                    where_clause,
-                    ..
-                },
-            ..
+            ident, generics, ..
         }) => {
+            let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
             quote! {
-                type #ident<#params> = <Self as #variant<#generic_names>>::#ident<#params> #where_clause;
+                type #ident #impl_generics = <Self as #variant<#generic_names>>::#ident #ty_generics #where_clause;
             }
         }
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
