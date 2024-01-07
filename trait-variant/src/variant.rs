@@ -15,9 +15,9 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     token::Plus,
-    Error, FnArg, Ident, ItemTrait, Pat, PatType, Result, ReturnType, Signature, Token, TraitBound,
-    TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, TypeGenerics, TypeImplTrait,
-    TypeParamBound,
+    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, ReturnType, Signature,
+    Token, TraitBound, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, TypeGenerics,
+    TypeImplTrait, TypeParam, TypeParamBound,
 };
 
 struct Attrs {
@@ -168,13 +168,16 @@ fn mk_blanket_impl(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
         .items
         .iter()
         .map(|item| blanket_impl_item(item, variant, orig_ty_generics));
-    let mut blanket_generics = tr.generics.to_owned();
+    let blanket_bound: TypeParam =
+        parse_quote!(TraitVariantBlanketType: #variant #orig_ty_generics);
+    let blanket = &blanket_bound.ident.clone();
+    let mut blanket_generics = tr.generics.clone();
     blanket_generics
         .params
-        .push(parse_quote!(TraitVariantBlanketType: #variant #orig_ty_generics));
+        .push(GenericParam::Type(blanket_bound));
     let (blanket_impl_generics, _ty, blanket_where_clause) = &blanket_generics.split_for_impl();
     quote! {
-        impl #blanket_impl_generics #orig #orig_ty_generics for TraitVariantBlanketType #blanket_where_clause
+        impl #blanket_impl_generics #orig #orig_ty_generics for #blanket #blanket_where_clause
         {
             #(#items)*
         }
