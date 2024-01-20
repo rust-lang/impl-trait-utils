@@ -43,4 +43,18 @@ where
     fn build<T: Display>(&self, items: impl Iterator<Item = T>) -> Self::B<T>;
 }
 
+#[trait_variant::make(Send + Sync)]
+pub trait GenericTraitWithBounds<'x, S: Sync, Y, const X: usize>
+where
+    Y: Sync,
+{
+    const CONST: usize = 3;
+    type F;
+    type A<const ANOTHER_CONST: u8>;
+    type B<T: Display>: FromIterator<T>;
+
+    async fn take(&self, s: S);
+    fn build<T: Display>(&self, items: impl Iterator<Item = T>) -> Self::B<T>;
+}
+
 fn main() {}
