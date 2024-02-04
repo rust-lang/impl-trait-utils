@@ -150,12 +150,25 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
             ReturnType::Default => return item.clone(),
         }
     };
+
+    let default_impl = fn_item.default.as_ref().map(|default_impl| {
+        syn::parse2(quote! {
+            {
+                async move {
+                    #default_impl
+                }
+            }
+        })
+        .unwrap()
+    });
+
     TraitItem::Fn(TraitItemFn {
         sig: Signature {
             asyncness: None,
             output: ReturnType::Type(arrow, Box::new(output)),
             ..sig.clone()
         },
+        default: default_impl,
         ..fn_item.clone()
     })
 }

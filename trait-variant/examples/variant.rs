@@ -20,12 +20,20 @@ pub trait LocalIntFactory {
     fn stream(&self) -> impl Iterator<Item = i32>;
     fn call(&self) -> u32;
     fn another_async(&self, input: Result<(), &str>) -> Self::MyFut<'_>;
+    async fn default_method(&self) -> u32 {
+        1
+    }
+    fn sync_default_method(&self) -> u32 {
+        1
+    }
 }
 
 #[allow(dead_code)]
 fn spawn_task(factory: impl IntFactory + 'static) {
     tokio::spawn(async move {
         let _int = factory.make(1, "foo").await;
+        let _default_int = factory.default_method().await;
+        let _sync_default_int = factory.sync_default_method();
     });
 }
 
