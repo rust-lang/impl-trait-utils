@@ -29,6 +29,11 @@ fn spawn_task(factory: impl IntFactory + 'static) {
     });
 }
 
+#[trait_variant::make(Send)]
+pub trait TupleFactory {
+    async fn new() -> Self;
+}
+
 #[trait_variant::make(GenericTrait: Send)]
 pub trait LocalGenericTrait<'x, S: Sync, Y, const X: usize>
 where

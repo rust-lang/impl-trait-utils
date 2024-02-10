@@ -38,6 +38,19 @@ mod variant;
 /// Implementers of the trait can choose to implement the variant instead of the
 /// original trait. The macro creates a blanket impl which ensures that any type
 /// which implements the variant also implements the original trait.
+///
+/// If a non-`Send` variant of the trait is not needed, the name of
+/// new variant can simply be omitted.  E.g., this generates a
+/// *single* (rather than an additional) trait whose definition
+/// matches that in the expansion above:
+///
+/// #[trait_variant::make(Send)]
+/// trait IntFactory {
+///     async fn make(&self) -> i32;
+///     fn stream(&self) -> impl Iterator<Item = i32>;
+///     fn call(&self) -> u32;
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn make(
     attr: proc_macro::TokenStream,

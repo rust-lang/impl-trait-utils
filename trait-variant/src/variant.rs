@@ -1,4 +1,5 @@
 // Copyright (c) 2023 Google LLC
+// Copyright (c) 2023 Various contributors (see git history)
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -11,7 +12,7 @@ use std::iter;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    parse::{Parse, ParseStream},
+    parse::{discouraged::Speculative as _, Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     token::Plus,
@@ -20,32 +21,46 @@ use syn::{
     TypeImplTrait, TypeParam, TypeParamBound,
 };
 
-struct Attrs {
-    variant: MakeVariant,
-}
-
-impl Parse for Attrs {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            variant: MakeVariant::parse(input)?,
-        })
-    }
-}
-
-struct MakeVariant {
-    name: Ident,
-    #[allow(unused)]
-    colon: Token![:],
+#[derive(Clone)]
+struct Variant {
+    name: Option<Ident>,
+    _colon: Option<Token![:]>,
     bounds: Punctuated<TraitBound, Plus>,
 }
 
-impl Parse for MakeVariant {
+fn parse_bounds_only(input: ParseStream) -> Result<Option<Variant>> {
+    let fork = input.fork();
+    let colon: Option<Token![:]> = fork.parse()?;
+    let bounds = match fork.parse_terminated(TraitBound::parse, Token![+]) {
+        Ok(x) => Ok(x),
+        Err(e) if colon.is_some() => Err(e),
+        Err(_) => return Ok(None),
+    };
+    input.advance_to(&fork);
+    Ok(Some(Variant {
+        name: None,
+        _colon: colon,
+        bounds: bounds?,
+    }))
+}
+
+fn parse_fallback(input: ParseStream) -> Result<Variant> {
+    let name: Ident = input.parse()?;
+    let colon: Token![:] = input.parse()?;
+    let bounds = input.parse_terminated(TraitBound::parse, Token![+])?;
+    Ok(Variant {
+        name: Some(name),
+        _colon: Some(colon),
+        bounds,
+    })
+}
+
+impl Parse for Variant {
     fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            name: input.parse()?,
-            colon: input.parse()?,
-            bounds: input.parse_terminated(TraitBound::parse, Token![+])?,
-        })
+        match parse_bounds_only(input)? {
+            Some(x) => Ok(x),
+            None => parse_fallback(input),
+        }
     }
 }
 
@@ -53,11 +68,10 @@ pub fn make(
     attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let attrs = parse_macro_input!(attr as Attrs);
+    let variant = parse_macro_input!(attr as Variant);
     let item = parse_macro_input!(item as ItemTrait);
 
-    let maybe_allow_async_lint = if attrs
-        .variant
+    let maybe_allow_async_lint = if variant
         .bounds
         .iter()
         .any(|b| b.path.segments.last().unwrap().ident == "Send")
@@ -67,26 +81,24 @@ pub fn make(
         quote! {}
     };
 
-    let variant = mk_variant(&attrs, &item);
-    let blanket_impl = mk_blanket_impl(&attrs, &item);
-
+    let variant_name = variant.clone().name.unwrap_or(item.clone().ident);
+    let variant_def = mk_variant(&variant_name, &variant.bounds, &item);
+    if variant_name == item.ident {
+        return variant_def.into();
+    }
+    let blanket_impl = Some(mk_blanket_impl(&variant_name, &item));
     quote! {
         #maybe_allow_async_lint
         #item
 
-        #variant
+        #variant_def
 
         #blanket_impl
     }
     .into()
 }
 
-fn mk_variant(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
-    let MakeVariant {
-        ref name,
-        colon: _,
-        ref bounds,
-    } = attrs.variant;
+fn mk_variant(name: &Ident, bounds: &Punctuated<TraitBound, Plus>, tr: &ItemTrait) -> TokenStream {
     let bounds: Vec<_> = bounds
         .into_iter()
         .map(|b| TypeParamBound::Trait(b.clone()))
@@ -160,9 +172,8 @@ fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
     })
 }
 
-fn mk_blanket_impl(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
+fn mk_blanket_impl(variant: &Ident, tr: &ItemTrait) -> TokenStream {
     let orig = &tr.ident;
-    let variant = &attrs.variant.name;
     let (_impl, orig_ty_generics, _where) = &tr.generics.split_for_impl();
     let items = tr
         .items

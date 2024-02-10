@@ -31,6 +31,17 @@ trait IntFactory: Send {
 
 Implementers can choose to implement either `LocalIntFactory` or `IntFactory` as appropriate.
 
+If a non-`Send` variant of the trait is not needed, the name of the new variant can simply be omitted.  E.g., this generates a *single* (rather than an additional) trait whose definition matches that in the expansion above:
+
+```rust
+#[trait_variant::make(Send)]
+trait IntFactory {
+    async fn make(&self) -> i32;
+    fn stream(&self) -> impl Iterator<Item = i32>;
+    fn call(&self) -> u32;
+}
+```
+
 For more details, see the docs for [`trait_variant::make`].
 
 [`trait_variant::make`]: https://docs.rs/trait-variant/latest/trait_variant/attr.make.html
