@@ -125,7 +125,7 @@ fn mk_variant(
     quote! { #variant }
 }
 
-// Transforms a one item declaration within the definition if it has `async fn` and/or `-> impl Trait` return types by adding new bounds.
+// Transforms one item declaration within the definition if it has `async fn` and/or `-> impl Trait` return types by adding new bounds.
 fn transform_item(item: &TraitItem, bounds: &Vec<TypeParamBound>) -> TraitItem {
     let TraitItem::Fn(fn_item @ TraitItemFn { sig, .. }) = item else {
         return item.clone();
