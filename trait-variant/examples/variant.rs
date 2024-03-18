@@ -17,9 +17,25 @@ pub trait LocalIntFactory {
         Self: 'a;
 
     async fn make(&self, x: u32, y: &str) -> i32;
+    async fn make_mut(&mut self);
     fn stream(&self) -> impl Iterator<Item = i32>;
     fn call(&self) -> u32;
     fn another_async(&self, input: Result<(), &str>) -> Self::MyFut<'_>;
+    async fn defaulted(&self, x: u32) -> i32 {
+        self.make(x, "10").await
+    }
+    async fn defaulted_mut(&mut self) -> i32 {
+        self.make(10, "10").await
+    }
+    async fn defaulted_mut_2(&mut self) {
+        self.make_mut().await
+    }
+    async fn defaulted_move(self) -> i32
+    where
+        Self: Sized,
+    {
+        self.make(10, "10").await
+    }
 }
 
 #[allow(dead_code)]
