@@ -81,7 +81,7 @@ fn transform_trait(attrs: &Attrs, tr: &ItemTrait) -> TokenStream {
 
                         if is_async || returns_impl_trait {
                             let name = &item_fn.sig.ident;
-                            return Some(quote! { #name(): #subtrait });
+                            return Some(quote! { #name(..): #subtrait });
                         }
                     }
                     _ => (),
