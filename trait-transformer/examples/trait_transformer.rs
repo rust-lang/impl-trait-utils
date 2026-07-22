@@ -13,6 +13,7 @@ use std::iter;
 
 use trait_transformer::trait_transformer;
 
+#[allow(dead_code)]
 #[trait_transformer(SendIntFactory: Send)]
 trait IntFactory {
     async fn make(&self) -> i32;
